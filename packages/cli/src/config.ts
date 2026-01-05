@@ -6,6 +6,19 @@ interface CliConfig {
     defaultProject?: string
 }
 
+/**
+ * CLI Configuration Module
+ *
+ * SECURITY NOTE: The `conf` package stores configuration in plain text on disk.
+ * For sensitive environments (CI/CD, shared systems), use the environment variable
+ * SUPERMEMORY_API_KEY instead of storing the key via `sm auth`.
+ *
+ * Storage locations:
+ * - Windows: %APPDATA%\supermemory-cli\config.json
+ * - macOS: ~/Library/Preferences/supermemory-cli/config.json
+ * - Linux: ~/.config/supermemory-cli/config.json
+ */
+
 const config = new Conf<CliConfig>({
     projectName: "supermemory-cli",
     schema: {
@@ -23,7 +36,24 @@ const config = new Conf<CliConfig>({
 })
 
 export function getApiKey(): string | undefined {
-    return config.get("apiKey") || process.env.SUPERMEMORY_API_KEY
+    return process.env.SUPERMEMORY_API_KEY || config.get("apiKey")
+}
+
+/**
+ * Check if API key is being loaded from environment variable (more secure)
+ */
+export function isUsingEnvKey(): boolean {
+    return !!process.env.SUPERMEMORY_API_KEY
+}
+
+/**
+ * Get a security notice about API key storage
+ */
+export function getSecurityNotice(): string {
+    if (isUsingEnvKey()) {
+        return "Using API key from SUPERMEMORY_API_KEY environment variable (recommended)"
+    }
+    return "API key stored in plain text config file. For sensitive environments, use SUPERMEMORY_API_KEY env var instead."
 }
 
 export function setApiKey(key: string): void {

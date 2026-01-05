@@ -67,11 +67,29 @@ export function resolvePath(inputPath: string): string {
     return path.resolve(inputPath)
 }
 
+// Cached terminal width to avoid repeated system calls
+let cachedTerminalWidth: number | null = null
+
 /**
- * Get terminal width for formatting
+ * Get terminal width for formatting.
+ * Result is cached to avoid repeated system calls.
+ *
+ * @param forceRefresh - If true, bypass cache and get fresh value
  */
-export function getTerminalWidth(): number {
-    return process.stdout.columns || 80
+export function getTerminalWidth(forceRefresh = false): number {
+    if (!forceRefresh && cachedTerminalWidth !== null) {
+        return cachedTerminalWidth
+    }
+    cachedTerminalWidth = process.stdout.columns || 80
+    return cachedTerminalWidth
+}
+
+/**
+ * Clear the terminal width cache.
+ * Call this if you need to respond to terminal resize events.
+ */
+export function clearTerminalWidthCache(): void {
+    cachedTerminalWidth = null
 }
 
 /**

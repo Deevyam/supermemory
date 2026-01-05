@@ -6,6 +6,7 @@ import Supermemory from "supermemory"
 import { getApiKey, getBaseUrl } from "../config.js"
 import { AuthenticationError, CliError, EXIT_CODES } from "../utils/error-handler.js"
 import { getTerminalWidth } from "../utils/platform.js"
+import { truncateUtf8Safe } from "../utils/text-utils.js"
 
 interface ListOptions {
     limit?: string
@@ -34,12 +35,13 @@ export function createListCommand(): Command {
             const limit = Number.parseInt(options.limit || "10", 10)
             const page = Number.parseInt(options.page || "1", 10)
 
-            if (Number.isNaN(limit) || limit < 1) {
-                throw new CliError("Invalid limit value", EXIT_CODES.INVALID_ARGUMENTS)
+            if (Number.isNaN(limit) || limit < 1 || !Number.isInteger(limit)) {
+                throw new CliError("Invalid limit value: must be a positive integer", EXIT_CODES.INVALID_ARGUMENTS)
             }
 
-            if (Number.isNaN(page) || page < 1) {
-                throw new CliError("Invalid page value", EXIT_CODES.INVALID_ARGUMENTS)
+            // Issue #7: Validate page is a positive integer (not float)
+            if (Number.isNaN(page) || page < 1 || !Number.isInteger(page)) {
+                throw new CliError("Invalid page value: must be a positive integer", EXIT_CODES.INVALID_ARGUMENTS)
             }
 
             // Parse container tags
@@ -115,9 +117,8 @@ export function createListCommand(): Command {
                     const type = memory.type || "text"
 
                     let title = memory.title || memory.summary || "Untitled"
-                    if (title.length > titleWidth - 5) {
-                        title = `${title.slice(0, titleWidth - 5)}...`
-                    }
+                    // Issue #6: Use UTF-8 safe truncation
+                    title = truncateUtf8Safe(title, titleWidth - 5)
 
                     const createdAt = memory.createdAt
                         ? new Date(memory.createdAt).toLocaleDateString()

@@ -6,6 +6,7 @@ import Supermemory from "supermemory"
 import { getApiKey, getBaseUrl } from "../config.js"
 import { AuthenticationError, CliError, EXIT_CODES } from "../utils/error-handler.js"
 import { getTerminalWidth } from "../utils/platform.js"
+import { truncateUtf8Safe } from "../utils/text-utils.js"
 
 interface SearchOptions {
     limit?: string
@@ -35,8 +36,8 @@ export function createSearchCommand(): Command {
             const limit = Number.parseInt(options.limit || "10", 10)
             const threshold = Number.parseFloat(options.threshold || "0.5")
 
-            if (Number.isNaN(limit) || limit < 1) {
-                throw new CliError("Invalid limit value", EXIT_CODES.INVALID_ARGUMENTS)
+            if (Number.isNaN(limit) || limit < 1 || !Number.isInteger(limit)) {
+                throw new CliError("Invalid limit value: must be a positive integer", EXIT_CODES.INVALID_ARGUMENTS)
             }
 
             if (Number.isNaN(threshold) || threshold < 0 || threshold > 1) {
@@ -114,11 +115,9 @@ export function createSearchCommand(): Command {
                         content = result.title
                     }
 
-                    // Truncate content for preview
+                    // Issue #6: Use UTF-8 safe truncation to prevent multi-byte character corruption
                     const maxLen = contentWidth - 5
-                    if (content.length > maxLen) {
-                        content = `${content.slice(0, maxLen)}...`
-                    }
+                    content = truncateUtf8Safe(content, maxLen)
 
                     table.push([documentId, score, type, content])
                 }
